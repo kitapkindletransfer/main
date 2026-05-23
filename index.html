@@ -81,96 +81,90 @@
 
 </div>
 
+<script src="https://js.puter.com/v2/"></script>
+
 <script>
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
 
-const input = document.getElementById('fileInput');
-const filesBox = document.getElementById('files');
+let files = [];
 
-let uploadedFiles = [];
+// Load saved files when page opens
+window.onload = async () => {
+    const saved = await puter.kv.get("my_files");
+    files = saved || [];
+    renderFiles();
+};
 
-input.addEventListener('change', async (e) => {
+// Upload file
+fileInput.addEventListener("change", async (e) => {
+    const selected = Array.from(e.target.files);
 
-    const files = Array.from(e.target.files);
+    for (const file of selected) {
 
-    for(const file of files){
+        // Upload to Puter
+        const uploaded = await puter.fs.upload(file);
 
-        try{
-
-            // Upload to Puter cloud
-            const result = await puter.fs.upload(file);
-
-            uploadedFiles.push({
-                name: file.name,
-                path: result.path
-            });
-
-            renderFiles();
-
-        }catch(err){
-            console.error(err);
-            alert('Upload failed');
-        }
+        // Save metadata
+        files.push({
+            name: file.name,
+            path: uploaded.path
+        });
     }
 
+    await puter.kv.set("my_files", files);
+
+    renderFiles();
 });
 
-function renderFiles(){
+// Render list
+function renderFiles() {
 
-    filesBox.innerHTML = '';
+    fileList.innerHTML = "";
 
-    uploadedFiles.forEach((file, index) => {
+    if (files.length === 0) {
+        fileList.innerHTML = "<p>No files uploaded</p>";
+        return;
+    }
 
-        const div = document.createElement('div');
-        div.className = 'file';
+    files.forEach((f, index) => {
+
+        const div = document.createElement("div");
+        div.className = "file-item";
 
         div.innerHTML = `
-            <span>${file.name}</span>
+            <span>${f.name}</span>
 
             <div>
-                <a
-                  class="download"
-                  href="https://puter.site${file.path}"
-                  target="_blank"
-                >
-                  Download
+                <a class="download-btn"
+                   href="https://puter.site${f.path}"
+                   target="_blank">
+                   Download
                 </a>
 
-                <button
-                  class="delete"
-                  onclick="deleteFile(${index})"
-                >
-                  Delete
+                <button onclick="deleteFile(${index})">
+                    Delete
                 </button>
             </div>
         `;
 
-        filesBox.appendChild(div);
-
+        fileList.appendChild(div);
     });
-
 }
 
-async function deleteFile(index){
+// Delete file
+async function deleteFile(index) {
 
-    try{
+    const file = files[index];
 
-        const file = uploadedFiles[index];
+    await puter.fs.delete(file.path);
 
-        // Delete from Puter cloud
-        await puter.fs.delete(file.path);
+    files.splice(index, 1);
 
-        uploadedFiles.splice(index, 1);
+    await puter.kv.set("my_files", files);
 
-        renderFiles();
-
-    }catch(err){
-        console.error(err);
-        alert('Delete failed');
-    }
-
+    renderFiles();
 }
-
 </script>
-
 </body>
 </html>
