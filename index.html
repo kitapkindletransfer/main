@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloud File Share</title>
+
+  <script src="https://js.puter.com/v2/"></script>
+
+  <style>
+    body{
+      font-family: Arial;
+      background:#f4f4f4;
+      padding:40px;
+    }
+
+    .container{
+      max-width:700px;
+      margin:auto;
+      background:white;
+      padding:30px;
+      border-radius:10px;
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+    }
+
+    .upload{
+      text-align:center;
+      border:2px dashed #3498db;
+      padding:30px;
+      border-radius:10px;
+    }
+
+    .files{
+      margin-top:30px;
+    }
+
+    .file{
+      background:#fafafa;
+      padding:15px;
+      border-radius:8px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    button,a{
+      padding:8px 14px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      text-decoration:none;
+      color:white;
+      margin-left:5px;
+    }
+
+    .download{
+      background:#27ae60;
+    }
+
+    .delete{
+      background:#e74c3c;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Cloud File Share</h1>
+
+  <div class="upload">
+    <input type="file" id="fileInput" multiple>
+  </div>
+
+  <div class="files" id="files"></div>
+
+</div>
+
+<script>
+
+const input = document.getElementById('fileInput');
+const filesBox = document.getElementById('files');
+
+let uploadedFiles = [];
+
+input.addEventListener('change', async (e) => {
+
+    const files = Array.from(e.target.files);
+
+    for(const file of files){
+
+        try{
+
+            // Upload to Puter cloud
+            const result = await puter.fs.upload(file);
+
+            uploadedFiles.push({
+                name: file.name,
+                path: result.path
+            });
+
+            renderFiles();
+
+        }catch(err){
+            console.error(err);
+            alert('Upload failed');
+        }
+    }
+
+});
+
+function renderFiles(){
+
+    filesBox.innerHTML = '';
+
+    uploadedFiles.forEach((file, index) => {
+
+        const div = document.createElement('div');
+        div.className = 'file';
+
+        div.innerHTML = `
+            <span>${file.name}</span>
+
+            <div>
+                <a
+                  class="download"
+                  href="https://puter.site${file.path}"
+                  target="_blank"
+                >
+                  Download
+                </a>
+
+                <button
+                  class="delete"
+                  onclick="deleteFile(${index})"
+                >
+                  Delete
+                </button>
+            </div>
+        `;
+
+        filesBox.appendChild(div);
+
+    });
+
+}
+
+async function deleteFile(index){
+
+    try{
+
+        const file = uploadedFiles[index];
+
+        // Delete from Puter cloud
+        await puter.fs.delete(file.path);
+
+        uploadedFiles.splice(index, 1);
+
+        renderFiles();
+
+    }catch(err){
+        console.error(err);
+        alert('Delete failed');
+    }
+
+}
+
+</script>
+
+</body>
+</html>
